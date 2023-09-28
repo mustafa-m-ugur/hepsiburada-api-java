@@ -3,14 +3,10 @@ package com.hepsiburada.hepsiburada.service;
 import com.hepsiburada.hepsiburada.config.Credentials;
 import com.hepsiburada.hepsiburada.config.Endpoints;
 import org.springframework.http.*;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
-import java.io.BufferedReader;
-import java.io.DataOutputStream;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
 import java.util.Base64;
 
 public class BaseService {
@@ -44,6 +40,9 @@ public class BaseService {
 
             HttpEntity<String> entity = new HttpEntity<>(dataOptions, headers);
             ResponseEntity<String> response;
+
+            HttpComponentsClientHttpRequestFactory rf = (HttpComponentsClientHttpRequestFactory) restTemplate.getRequestFactory();
+            rf.setConnectTimeout(5000);
 
             if ("GET".equalsIgnoreCase(method)) {
                 response = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.GET, entity, String.class);
