@@ -2,6 +2,9 @@ package com.hepsiburada.hepsiburada.service;
 
 import com.hepsiburada.hepsiburada.config.Credentials;
 import com.hepsiburada.hepsiburada.config.Endpoints;
+import org.springframework.http.*;
+import org.springframework.web.client.RestTemplate;
+import org.springframework.web.util.UriComponentsBuilder;
 
 import java.io.BufferedReader;
 import java.io.DataOutputStream;
@@ -15,7 +18,6 @@ public class BaseService {
     protected Credentials credentials = new Credentials();
     protected Endpoints endpoints = new Endpoints();
     private String baseUrl;
-    private static HttpURLConnection connection;
 
     public BaseService(boolean isTestStage, Credentials credentials, Endpoints endpoints, String baseUrl) {
         this.isTestStage = isTestStage;
@@ -28,52 +30,41 @@ public class BaseService {
     }
 
     public Object request(String method, String endpoint, String dataOptions) {
-        BufferedReader reader;
-        StringBuffer response = new StringBuffer();
-        String responseData;
-
         try {
+            RestTemplate restTemplate = new RestTemplate();
 
+            HttpHeaders headers = new HttpHeaders();
             String usernamePass = credentials.getUsername() + ":" + credentials.getPassword();
-            String basicAuth = "Basic " + Base64.getEncoder().encode(usernamePass.getBytes());
+            String basicAuth = "Basic " + Base64.getEncoder().encodeToString(usernamePass.getBytes());
+            headers.set("Authorization", basicAuth);
+            headers.set("User-Agent", credentials.getUsername() + " - SelfIntegration");
+            headers.setContentType(MediaType.APPLICATION_JSON);
 
-            URL url = new URL(endpoint);
-            connection = (HttpURLConnection) url.openConnection();
-            connection.setRequestProperty("Authorization", basicAuth);
-            connection.setRequestProperty("User-Agent", credentials.getUsername() + " - SelfIntegration");
-            connection.setRequestMethod(method);
-            connection.setRequestProperty("Content-Type", "application/json");
-            connection.setConnectTimeout(5000);
-            connection.setReadTimeout(5000);
-            connection.setDoOutput(true);
+            UriComponentsBuilder uriBuilder = UriComponentsBuilder.fromHttpUrl(endpoint);
 
-            if (method.equals("POST") && dataOptions != null) {
-                try (DataOutputStream wr = new DataOutputStream(connection.getOutputStream())) {
-                    wr.write(dataOptions.getBytes());
-                }
-            }
+            HttpEntity<String> entity = new HttpEntity<>(dataOptions, headers);
+            ResponseEntity<String> response;
 
-            if (connection.getResponseCode() < 300) {
-                reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                while ((responseData = reader.readLine()) != null) {
-                    response.append(responseData);
-                }
-                reader.close();
-
+            if ("GET".equalsIgnoreCase(method)) {
+                response = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.GET, entity, String.class);
+            } else if ("POST".equalsIgnoreCase(method)) {
+                response = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.POST, entity, String.class);
+            }  else if ("PUT".equalsIgnoreCase(method)) {
+                response = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.PUT, entity, String.class);
             } else {
-                reader = new BufferedReader(new InputStreamReader(connection.getErrorStream()));
-                while ((responseData = reader.readLine()) != null) {
-                    response.append(responseData);
-                }
-                reader.close();
+                throw new IllegalArgumentException("Geçersiz HTTP isteği türü: " + method);
             }
 
+            // TODO The ones from response.getBody will also be processed into a baseRequestResponse object.
+
+            String responseBody = response.getBody();
+
+            return responseBody;
         } catch (Exception e) {
+            e.printStackTrace();
 
+            return null;
         }
-
-        // TODO baseResponseModel will be created and it will be returned as return
-        return "";
     }
 
 }
