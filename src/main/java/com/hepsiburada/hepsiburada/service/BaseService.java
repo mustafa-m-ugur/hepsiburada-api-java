@@ -2,11 +2,13 @@ package com.hepsiburada.hepsiburada.service;
 
 import com.hepsiburada.hepsiburada.config.Credentials;
 import com.hepsiburada.hepsiburada.config.Endpoints;
+import com.hepsiburada.hepsiburada.utils.ServiceResponse;
 import org.springframework.http.*;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
+import java.io.IOException;
 import java.util.Base64;
 
 public class BaseService {
@@ -14,6 +16,7 @@ public class BaseService {
     protected Credentials credentials = new Credentials();
     protected Endpoints endpoints = new Endpoints();
     private String baseUrl;
+    private ServiceResponse serviceResponse;
 
     public BaseService(boolean isTestStage, Credentials credentials, Endpoints endpoints, String baseUrl) {
         this.isTestStage = isTestStage;
@@ -25,7 +28,7 @@ public class BaseService {
         return "https://" + subdomain + this.baseUrl + endpoint;
     }
 
-    public Object request(String method, String endpoint, String dataOptions) {
+    public ServiceResponse request(String method, String endpoint, String dataOptions) {
         try {
             RestTemplate restTemplate = new RestTemplate();
 
@@ -54,16 +57,20 @@ public class BaseService {
                 throw new IllegalArgumentException("Geçersiz HTTP isteği türü: " + method);
             }
 
-            // TODO The ones from response.getBody will also be processed into a baseRequestResponse object.
+            serviceResponse.setStatusCode(response.getStatusCode().toString());
+            serviceResponse.setStatus(true);
+            serviceResponse.setMessage("Success");
+            serviceResponse.setData(response.getBody());
 
-            String responseBody = response.getBody();
-
-            return responseBody;
         } catch (Exception e) {
             e.printStackTrace();
-
-            return null;
+            serviceResponse.setStatusCode("500");
+            serviceResponse.setStatus(false);
+            serviceResponse.setMessage(e.getMessage());
+            serviceResponse.setData("");
         }
+
+        return serviceResponse;
     }
 
 }
