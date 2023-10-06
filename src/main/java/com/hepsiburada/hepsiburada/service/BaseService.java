@@ -18,10 +18,11 @@ public class BaseService {
     private String baseUrl;
     private ServiceResponse serviceResponse;
 
-    public BaseService(boolean isTestStage, Credentials credentials, Endpoints endpoints, String baseUrl) {
+    public BaseService(boolean isTestStage, Credentials credentials, Endpoints endpoints) {
         this.isTestStage = isTestStage;
         this.credentials = credentials;
-        this.baseUrl = isTestStage ? this.endpoints.testUrl : this.endpoints.prodUrl;
+        this.endpoints = endpoints;
+        this.baseUrl = isTestStage ? endpoints.getTestUrl() : endpoints.getProdUrl();
     }
 
     public String getUrl(String subdomain, String endpoint) {
@@ -51,7 +52,7 @@ public class BaseService {
                 response = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.GET, entity, String.class);
             } else if ("POST".equalsIgnoreCase(method)) {
                 response = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.POST, entity, String.class);
-            }  else if ("PUT".equalsIgnoreCase(method)) {
+            } else if ("PUT".equalsIgnoreCase(method)) {
                 response = restTemplate.exchange(uriBuilder.toUriString(), HttpMethod.PUT, entity, String.class);
             } else {
                 throw new IllegalArgumentException("Geçersiz HTTP isteği türü: " + method);
